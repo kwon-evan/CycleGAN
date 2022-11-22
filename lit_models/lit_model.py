@@ -143,20 +143,17 @@ class LitModel(pl.LightningModule):
         real_B = batch['B'].half() if self.half else batch['B']
 
         target_real = torch.ones(
-                size=(self.batch_size, 1),
+                size=(len(real_A), 1),
                 dtype=torch.float16,
                 device=torch.device('cuda'),
                 requires_grad=False,
         )
         target_fake = torch.zeros(
-                size=(self.batch_size, 1),
+                size=(len(real_B), 1),
                 dtype=torch.float16,
                 device=torch.device('cuda'),
                 requires_grad=False,
         )
-
-        # target_real = Variable(torch.Tensor(self.batch_size).fill_(1.0), requires_grad=False).to(torch.device('cuda')).half()
-        # target_fake = Variable(torch.Tensor(self.batch_size).fill_(0.0), requires_grad=False).to(torch.device('cuda')).half()
 
         ###### Generators A2B and B2A ######
         if optimizer_idx == 0:
@@ -189,6 +186,10 @@ class LitModel(pl.LightningModule):
 
             # Log
             self.log('loss_G', loss_G, prog_bar=True)
+            self.log('loss_identity_A', loss_identity_A, prog_bar=True)
+            self.log('loss_identity_B', loss_identity_B, prog_bar=True)
+            self.log('loss_GAN_A2B', loss_GAN_A2B, prog_bar=True)
+            self.log('loss_GAN_B2A', loss_GAN_B2A, prog_bar=True)
             return loss_G
 
         ######### Discriminator A #########

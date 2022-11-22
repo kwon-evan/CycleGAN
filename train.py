@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import os
 import warnings
 import argparse
 from torch.cuda import device_count
@@ -23,7 +24,7 @@ class LogPredictionsCallback(Callback):
     def on_validation_batch_end(
             self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if batch_idx == 0:
-            n = 8
+            n = 12
             a, b = batch['A'], batch['B']
             fake_A, fake_B = outputs['fake_A'], outputs['fake_B']
 
@@ -38,6 +39,7 @@ def args_parse():
     parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs of training')
     parser.add_argument('--batch_size', type=int, default=12, help='size of the batches')
     parser.add_argument('--dataroot', type=str, default='data/img2real/', help='root directory of the dataset')
+    parser.add_argument('--save_path', type=str, default='ckpts/', help='root directory of the dataset')
     parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
     parser.add_argument('--decay_epoch', type=int, default=100, help='epoch to start linearly decaying the learning rate to 0')
     parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
@@ -48,26 +50,29 @@ def args_parse():
 
     return parser.parse_args()
 
-def get_callbacks():
+def get_callbacks(args):
     # Callbacks
+    if not os.path.exists(args.save_path):
+        os.mkdir(args.save_path)
+
     chk_callback = ModelCheckpoint(
-        dirpath='saving_ckpt',
+        dirpath=args.save_path,
         filename='{epoch:02d}-{loss_G:.3f}',
         verbose=True,
         save_top_k=5,
         monitor='loss_G',
         mode='min'
     )
+
     log_predictions_callback = LogPredictionsCallback()
 
     return [
-            # chk_callback, 
+            chk_callback, 
             log_predictions_callback, 
             RichProgressBar()
             ]
 
 def main(args):
-
     dm = DataModule(root=args.dataroot, batch_size=args.batch_size)
     model = LitModel(**vars(args))
     trainer = Trainer(
@@ -78,12 +83,11 @@ def main(args):
             amp_backend='apex',
             max_epochs=args.n_epochs,
             # Callbacks
-            callbacks=get_callbacks(),
+            callbacks=get_callbacks(args),
             # Logger
             logger=wandb_logger
     )
     trainer.fit(model, dm)
-
     return
 
 if __name__ == '__main__':
