@@ -101,9 +101,13 @@ ENV/
 .mypy_cache/
 
 # project directories
+data/
 datasets/
 output/A/
 output/B/
 
 # model checkpoints
 *.pth
+
+# wandb logger
+wandb/

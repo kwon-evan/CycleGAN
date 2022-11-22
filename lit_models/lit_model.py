@@ -6,6 +6,7 @@ import pytorch_lightning as pl
 
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 from lit_models.utils import ReplayBuffer, LambdaLR, weights_init_normal
 
@@ -105,7 +106,7 @@ class LitModel(pl.LightningModule):
             epoch:       int   = 0,
             n_epochs:    int   = 200,
             decay_epoch: int   = 100,
-            batch_size:  int   = 1,
+            batch_size:  int   = 4,
             lr:          float = 0.0002,
             size:        int   = 256,
             input_nc:    int   = 3,
@@ -140,8 +141,22 @@ class LitModel(pl.LightningModule):
     def training_step(self, batch, batch_idx, optimizer_idx):
         real_A = batch['A'].half() if self.half else batch['A']
         real_B = batch['B'].half() if self.half else batch['B']
-        target_real = torch.ones_like(real_A, requires_grad=False)
-        target_fake = torch.zeros_like(real_A, requires_grad=False)
+
+        target_real = torch.ones(
+                size=(self.batch_size, 1),
+                dtype=torch.float16,
+                device=torch.device('cuda'),
+                requires_grad=False,
+        )
+        target_fake = torch.zeros(
+                size=(self.batch_size, 1),
+                dtype=torch.float16,
+                device=torch.device('cuda'),
+                requires_grad=False,
+        )
+
+        # target_real = Variable(torch.Tensor(self.batch_size).fill_(1.0), requires_grad=False).to(torch.device('cuda')).half()
+        # target_fake = Variable(torch.Tensor(self.batch_size).fill_(0.0), requires_grad=False).to(torch.device('cuda')).half()
 
         ###### Generators A2B and B2A ######
         if optimizer_idx == 0:
