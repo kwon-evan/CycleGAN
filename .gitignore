@@ -111,3 +111,6 @@ output/B/
 
 # wandb logger
 wandb/
+
+# Saving Checkpoint
+ckpts/

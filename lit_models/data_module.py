@@ -3,7 +3,7 @@ import random
 import os
 
 import pytorch_lightning as pl
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from PIL import Image
 import torchvision.transforms as transforms
 
@@ -11,7 +11,7 @@ class ImageDataset(Dataset):
     def __init__(self, root, dst_size=(100, 400), transforms_=None, unaligned=True, mode='train'):
         if transforms_ is None:
             transforms_ = [ 
-                    transforms.Resize(dst_size, Image.BICUBIC), 
+                    transforms.Resize(dst_size, Image.BICUBIC),
                     # transforms.RandomCrop(opt.size), 
                     # transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
@@ -38,20 +38,34 @@ class ImageDataset(Dataset):
         return max(len(self.files_A), len(self.files_B))
 
 class DataModule(pl.LightningDataModule):
-    def __init__(self, root: str = 'data/img2real', batch_size: int = 2):
+    def __init__(self, root: str='data/img2real', batch_size: int=2):
         super().__init__()
         self.root = root
         self.batch_size = batch_size
 
-    def setup(self, stage: str):
-        if stage == 'fit':
-            self.train = ImageDataset(self.root)
+    def prepare_data(self):
+        import os.path
+        if not os.path.exists(self.root):
+            assert "No Such Files or Dirs!"
 
-        if stage == 'test':
+    def setup(self, stage: str):
+        if stage == "fit" or stage is None:
+            plates_full = ImageDataset(self.root)
+
+            full_size = len(plates_full)
+            train_size = int(full_size * 0.9)
+            val_size = full_size - train_size
+
+            self.train, self.val = random_split(plates_full, [train_size, val_size])
+
+        if stage == "test" or stage is None:
             self.test = ImageDataset(self.root)
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size)
+
+    def val_dataloader(self):
+        return DataLoader(self.val, batch_size=self.batch_size)
 
     def test_dataloader(self):
         return DataLoader(self.test, batch_size=self.batch_size)

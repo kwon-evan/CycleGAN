@@ -7,6 +7,7 @@ from torch.cuda import device_count
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from PIL import Image
+import wandb
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar, Callback
@@ -25,13 +26,17 @@ class LogPredictionsCallback(Callback):
             self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if batch_idx == 0:
             n = 12
-            a, b = batch['A'], batch['B']
+            real_A, real_B = batch['A'], batch['B']
             fake_A, fake_B = outputs['fake_A'], outputs['fake_B']
 
-            wandb_logger.log_image(key='a', images=[img for img in a[:n]])
-            wandb_logger.log_image(key='b', images=[img for img in b[:n]])
-            wandb_logger.log_image(key='fake_A', images=[img for img in fake_A[:n]])
-            wandb_logger.log_image(key='fake_B', images=[img for img in fake_B[:n]])
+            columns = ['real_A', 'real_B', 'fake_A', 'fake_B']
+
+            data = [[wandb.Image(ra), wandb.Image(rb), wandb.Image(fa), wandb.Image(fb)]
+                    for ra, rb, fa, fb in zip(real_A, real_B, fake_A, fake_B)]
+
+            wandb_logger.log_table(key='on_valid_end',
+                                   columns=columns,
+                                   data=data)
 
 def args_parse():
     parser = argparse.ArgumentParser()
