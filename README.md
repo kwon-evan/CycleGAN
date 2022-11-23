@@ -1,5 +1,6 @@
 # Pytorch-CycleGAN
 A clean and readable Pytorch implementation of CycleGAN (https://arxiv.org/abs/1703.10593)
+.. and Wrapped it in Pytorch-lightning!
 
 ## Prerequisites
 Code is intended to work with ```Python 3.6.x```, it hasn't been tested with previous versions
